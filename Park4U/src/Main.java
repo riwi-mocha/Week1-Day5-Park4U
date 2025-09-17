@@ -50,6 +50,11 @@ public class Main extends javax.swing.JFrame {
         });
 
         exitVehiculeBtn.setText("Salida de vehiculo");
+        exitVehiculeBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exitVehiculeBtnActionPerformed(evt);
+            }
+        });
 
         memberships.setText("Membresias");
 
@@ -224,6 +229,51 @@ public class Main extends javax.swing.JFrame {
         
         
     }//GEN-LAST:event_carEntranceBtnActionPerformed
+
+    private void exitVehiculeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exitVehiculeBtnActionPerformed
+        if(Parking.vehiclesParked.size()==0){
+            JOptionPane.showMessageDialog(rootPane, "No hay vehiculos parqueados", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        String plate = JOptionPane.showInputDialog(rootPane, "Ingrese la placa del vehiculo que desea retirar", "Ventana", JOptionPane.QUESTION_MESSAGE);
+        
+        if(plate==null)return;
+        
+        
+        boolean passRetireHour = false;
+        String retireHour;
+        LocalTime timeExit;
+        do{
+            retireHour = JOptionPane.showInputDialog(rootPane, "Ingrese la hora de salida en el formato HH:mm\nEjemplo(08:30)", "Ventana", JOptionPane.QUESTION_MESSAGE);
+            
+            if(retireHour == null)return;
+            
+            timeExit = Parking.parseTime(retireHour);
+            
+            if(timeExit==null){
+                JOptionPane.showMessageDialog(rootPane, "Hora no valida", "Error", JOptionPane.ERROR_MESSAGE);
+            }else{
+                break;
+            }
+            
+           
+        }while(!passRetireHour);
+        
+        int answerWeekend = JOptionPane.showConfirmDialog(rootPane, "¿Es sabado o domingo?", "Confirmacion",JOptionPane.YES_NO_OPTION);
+        boolean isWeekend;
+        
+        if(answerWeekend==0){
+            isWeekend = true;
+        } else if(answerWeekend==1){
+            isWeekend = false;
+        } else {
+            return;
+        }
+        
+        
+        
+    }//GEN-LAST:event_exitVehiculeBtnActionPerformed
 
     public void tookMoreThanThreeMethod(){
         JOptionPane.showMessageDialog(rootPane, "Superaste los 3 intentos", "Informacion", JOptionPane.INFORMATION_MESSAGE);

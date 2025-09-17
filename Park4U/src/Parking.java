@@ -1,4 +1,5 @@
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -31,5 +32,15 @@ public class Parking {
     
     public static String formatTime(LocalTime t){
         return t.format(HHMM);
+    }
+    
+    public static int minutesBetween(LocalTime entry,LocalTime exit){
+        
+        if(exit.isBefore(entry) || exit.equals(entry)){
+            return Duration.between(entry, exit.plusHours(24)).toMinutes();
+        } else {
+            return Duration.between(entry, exit);
+        }
+        
     }
 }
