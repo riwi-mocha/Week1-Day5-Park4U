@@ -258,7 +258,7 @@ public class Main extends javax.swing.JFrame {
 
         if(!vehicleExists){
             JOptionPane.showMessageDialog(rootPane, "Bienvenido por primera vez " + plate, "Informacion", JOptionPane.INFORMATION_MESSAGE);
-            Vehicle vehicle = new Vehicle(plate, optionTypeVehicule, valuePerHour, timeEntrance, 0, false, true);
+            Vehicle vehicle = new Vehicle(plate, optionTypeVehicule, valuePerHour, timeEntrance, 1, false, true, optionFloorNumber);
             Parking.allVehicles.add(vehicle);
         }
 
@@ -366,29 +366,31 @@ public class Main extends javax.swing.JFrame {
             return;
         }
 
-        /*Salida y cobro**
 
-   * Datos: placa y hora de salida.
-   * Tarifa base por hora con redondeo al alza si la fracción es mayor o igual a 15 minutos:
+        int lostTicket = JOptionPane.showConfirmDialog(rootPane, "¿Perdió el ticket?", "Confirmación", JOptionPane.YES_NO_OPTION);
+        boolean isLostTicket = (lostTicket == JOptionPane.YES_OPTION);
 
-     * MOTO: 2.500
-     * CARRO: 4.000
-     * CAMIONETA: 5.500
-   * Recargos:
+        int minutesStayed;
+        double hoursStayed;
+        double basePrice;
+        double totalPrice;
 
-     * Nocturno (≥ 21:00 o < 06:00): +15% sobre el total.
-     * Fines de semana (sábado y domingo): +10%.
-   * Descuentos, aplicando solo el mayor:
+        if (isLostTicket) {
+            hoursStayed = 2.0;
+            basePrice = hoursStayed * currentVehicle.pricePerHour;
+            totalPrice = basePrice + 20000;
+            minutesStayed = (int)(hoursStayed * 60);
+        } else {
+            minutesStayed = Parking.minutesBetween(currentVehicle.entryTime, timeExit);
+            int overMinutes = minutesStayed%60;
 
-     * Convenio Empresa: 12%
-     * Residente Nivel: 10%
-     * EcoVehículo: 8%
-   * Pérdida de ticket: multa fija de 20.000 más un cobro estimado de 2 horas mínimo */
-
-        int minutesStayed = Parking.minutesBetween(currentVehicle.entryTime, timeExit);
-        double hoursStayed = Math.ceil(minutesStayed/60.0);
-        double basePrice = hoursStayed * currentVehicle.pricePerHour;
-        double totalPrice = basePrice;
+            if(overMinutes>=15){
+                minutesStayed += 60;
+            }
+            hoursStayed = minutesStayed/60;
+            basePrice = hoursStayed * currentVehicle.pricePerHour;
+            totalPrice = basePrice;
+        }
 
         StringBuilder receipt = new StringBuilder();
         receipt.append("----- RECIBO DE PAGO -----\n");
@@ -396,8 +398,12 @@ public class Main extends javax.swing.JFrame {
         receipt.append("Tipo de vehiculo: ").append(currentVehicle.type).append("\n");
         receipt.append("Hora de entrada: ").append(Parking.formatTime(currentVehicle.entryTime)).append("\n");
         receipt.append("Hora de salida: ").append(Parking.formatTime(timeExit)).append("\n");
-        receipt.append("Tiempo total estacionado: ").append(minutesStayed).append(" minutos (").append(hoursStayed).append(" horas)\n");
+        receipt.append("Tiempo total estacionado: ").append(hoursStayed).append(" horas\n");
         receipt.append(String.format("Tarifa base: $%,.2f\n", basePrice));
+
+        if (isLostTicket) {
+            receipt.append(String.format("Multa por pérdida de ticket: $%,.2f\n", 20000.0));
+        }
 
         // Apply surcharges
         if(Parking.inNightTime(timeExit)) {

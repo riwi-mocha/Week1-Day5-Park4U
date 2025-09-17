@@ -27,7 +27,7 @@ public class Vehicle {
         this.membershipPrice = membershipPrice;
     }
 
-    public Vehicle(String licensePlate, String type, int pricePerHour, LocalTime entryTime, int quantityEntries, boolean hasMembership, boolean isParked) {
+    public Vehicle(String licensePlate, String type, int pricePerHour, LocalTime entryTime, int quantityEntries, boolean hasMembership, boolean isParked, int floorParked) {
         this.licensePlate = licensePlate;
         this.type = type;
         this.pricePerHour = pricePerHour;
@@ -35,6 +35,7 @@ public class Vehicle {
         this.quantityEntries = quantityEntries;
         this.hasMembership = hasMembership;
         this.isParked = isParked;
+        this.floorParked = floorParked;
     }
 
     public String getLicensePlate() {
