@@ -1,6 +1,8 @@
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+
+import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 
 /*
@@ -135,7 +137,14 @@ public class Main extends javax.swing.JFrame {
                 continue;
             }
 
-            if(Parking.vehiclesParked.contains(plate)){
+            boolean plateExists = false;
+            for(Vehicle v : Parking.allVehicles){
+                if(v.getLicensePlate().equals(plate) && v.isParked){
+                    plateExists = true;
+                    break;
+                }
+            }
+            if(plateExists){
                 JOptionPane.showMessageDialog(rootPane, "El vehiculo con placa " + plate + " ya se encuentra parqueado", "Advertencia", JOptionPane.WARNING_MESSAGE);
             } else {
                 break;
@@ -205,12 +214,13 @@ public class Main extends javax.swing.JFrame {
         
         String entranceHour;
         int o;
+        LocalTime timeEntrance = null;
         for(o = 0; o<3; o++){
             entranceHour = JOptionPane.showInputDialog(rootPane, "Ingrese la hora de entrada en el formato HH:mm\nEjemplo(08:30)", "Ventana", JOptionPane.QUESTION_MESSAGE);
             
             if(entranceHour == null)return;
             
-            LocalTime timeEntrance = Parking.parseTime(entranceHour);
+            timeEntrance = Parking.parseTime(entranceHour);
             
             if(timeEntrance==null){
                 JOptionPane.showMessageDialog(rootPane, "Hora no valida", "Error", JOptionPane.ERROR_MESSAGE);
@@ -226,12 +236,50 @@ public class Main extends javax.swing.JFrame {
            return;
         }
 
+        for(Vehicle v : Parking.allVehicles){
+            if(v.getLicensePlate().equals(plate) && v.isParked){
+                JOptionPane.showMessageDialog(rootPane, "El vehiculo con placa " + plate + " ya se encuentra parqueado", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
+        boolean vehicleExists = false;
+
+        for(Vehicle v : Parking.allVehicles){
+            if(v.getLicensePlate().equals(plate) && !v.isParked){
+                vehicleExists = true;
+                v.isParked = true;
+                v.entryTime = timeEntrance;
+                v.quantityEntries += 1;
+                JOptionPane.showMessageDialog(rootPane, "Bienvenido de nuevo " + plate + ". Esta es tu entrada numero " + v.getQuantityEntries(), "Informacion", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+        }
+
+        if(!vehicleExists){
+            JOptionPane.showMessageDialog(rootPane, "Bienvenido por primera vez " + plate, "Informacion", JOptionPane.INFORMATION_MESSAGE);
+            Vehicle vehicle = new Vehicle(plate, optionTypeVehicule, valuePerHour, timeEntrance, 0, false, true);
+            Parking.allVehicles.add(vehicle);
+        }
+
+        
+       
+
         
         
     }//GEN-LAST:event_carEntranceBtnActionPerformed
 
     private void exitVehiculeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exitVehiculeBtnActionPerformed
-        if(Parking.vehiclesParked.size()==0){
+
+        int quantityVehiclesParked = 0;
+
+        for(Vehicle v : Parking.allVehicles) {
+            if(v.isParked()) {
+                quantityVehiclesParked++;
+            }
+        }
+
+        if(quantityVehiclesParked==0){
             JOptionPane.showMessageDialog(rootPane, "No hay vehiculos parqueados", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -239,6 +287,27 @@ public class Main extends javax.swing.JFrame {
         String plate = JOptionPane.showInputDialog(rootPane, "Ingrese la placa del vehiculo que desea retirar", "Ventana", JOptionPane.QUESTION_MESSAGE);
         
         if(plate==null)return;
+        boolean plateExists = false;
+        Vehicle currentVehicle = null;
+        for(Vehicle v : Parking.allVehicles){
+            if(v.getLicensePlate().equals(plate)){
+                if(v.isParked()){
+                    plateExists = true;
+                    currentVehicle = v;
+                    break;
+                } else {
+                    JOptionPane.showMessageDialog(rootPane, "El vehiculo con placa " + plate + " no se encuentra parqueado", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+            }
+
+        }
+
+        if(!plateExists){
+            JOptionPane.showMessageDialog(rootPane, "El vehiculo con placa " + plate + " no se encuentra parqueado", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         
         
         boolean passRetireHour = false;
@@ -270,9 +339,101 @@ public class Main extends javax.swing.JFrame {
         } else {
             return;
         }
-        
-        
-        
+
+        JComboBox<String> combo = new JComboBox<>(new String[]{"Convenio Empresa", "Residente Nivel", "Ecovehiculo", "Ninguno"});
+
+        int result = JOptionPane.showConfirmDialog(rootPane, combo, "Seleccione una opción", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String selectedOption = (String) combo.getSelectedItem();
+
+            currentVehicle.isParked = false;
+            Parking.spacesAvailablePerFloor[currentVehicle.floorParked - 1]++;
+            if(selectedOption=="Ninguno") {
+                currentVehicle.agreementName = null;
+                currentVehicle.agreementDiscount = 0;
+            }else if(selectedOption=="Convenio Empresa") {
+                currentVehicle.agreementName = "Convenio Empresa";
+                currentVehicle.agreementDiscount = 0.12;
+            }else if(selectedOption=="Residente Nivel") {
+                currentVehicle.agreementName = "Residente Nivel";
+                currentVehicle.agreementDiscount = 0.10;
+            }else if(selectedOption=="Ecovehiculo") {
+                currentVehicle.agreementName = "Ecovehiculo";
+                currentVehicle.agreementDiscount = 0.08;
+            }
+        } else {
+            return;
+        }
+
+        /*Salida y cobro**
+
+   * Datos: placa y hora de salida.
+   * Tarifa base por hora con redondeo al alza si la fracción es mayor o igual a 15 minutos:
+
+     * MOTO: 2.500
+     * CARRO: 4.000
+     * CAMIONETA: 5.500
+   * Recargos:
+
+     * Nocturno (≥ 21:00 o < 06:00): +15% sobre el total.
+     * Fines de semana (sábado y domingo): +10%.
+   * Descuentos, aplicando solo el mayor:
+
+     * Convenio Empresa: 12%
+     * Residente Nivel: 10%
+     * EcoVehículo: 8%
+   * Pérdida de ticket: multa fija de 20.000 más un cobro estimado de 2 horas mínimo */
+
+        int minutesStayed = Parking.minutesBetween(currentVehicle.entryTime, timeExit);
+        double hoursStayed = Math.ceil(minutesStayed/60.0);
+        double basePrice = hoursStayed * currentVehicle.pricePerHour;
+        double totalPrice = basePrice;
+
+        StringBuilder receipt = new StringBuilder();
+        receipt.append("----- RECIBO DE PAGO -----\n");
+        receipt.append("Placa: ").append(currentVehicle.licensePlate).append("\n");
+        receipt.append("Tipo de vehiculo: ").append(currentVehicle.type).append("\n");
+        receipt.append("Hora de entrada: ").append(Parking.formatTime(currentVehicle.entryTime)).append("\n");
+        receipt.append("Hora de salida: ").append(Parking.formatTime(timeExit)).append("\n");
+        receipt.append("Tiempo total estacionado: ").append(minutesStayed).append(" minutos (").append(hoursStayed).append(" horas)\n");
+        receipt.append(String.format("Tarifa base: $%,.2f\n", basePrice));
+
+        // Apply surcharges
+        if(Parking.inNightTime(timeExit)) {
+            double nightSurcharge = totalPrice * 0.15;
+            totalPrice += nightSurcharge;
+            receipt.append(String.format("Recargo nocturno (15%%): $%,.2f\n", nightSurcharge));
+        }
+
+        if(isWeekend) {
+            double weekendSurcharge = totalPrice * 0.10;
+            totalPrice += weekendSurcharge;
+            receipt.append(String.format("Recargo fin de semana (10%%): $%,.2f\n", weekendSurcharge));
+        }
+
+        // Apply discounts
+        double discount = 0;
+        String discountName = "Ninguno";
+
+        if(currentVehicle.agreementDiscount > discount) {
+            discount = currentVehicle.agreementDiscount;
+            discountName = currentVehicle.agreementName;
+        }
+
+        if(discount > 0) {
+            double discountAmount = totalPrice * discount;
+            totalPrice -= discountAmount;
+            receipt.append(String.format("Descuento (%s - %.0f%%): -$%,.2f\n", discountName, discount * 100, discountAmount));
+        } else {
+            receipt.append("Descuento: Ninguno\n");
+        }
+
+        receipt.append(String.format("Total a pagar: $%,.2f\n", totalPrice));
+        receipt.append("--------------------------");
+
+        JOptionPane.showMessageDialog(rootPane, receipt.toString(), "Recibo", JOptionPane.INFORMATION_MESSAGE);
+
     }//GEN-LAST:event_exitVehiculeBtnActionPerformed
 
     public void tookMoreThanThreeMethod(){

@@ -15,11 +15,14 @@ import java.util.ArrayList;
  * @author javaspringboot
  */
 public class Parking {
-    public static final ArrayList<Vehicle> vehiclesParked = new ArrayList<>();
+    public static final ArrayList<Vehicle> allVehicles = new ArrayList<>();
     public static final DateTimeFormatter HHMM = DateTimeFormatter.ofPattern("HH:mm");
-    public static final int[] spacesAvailablePerFloor = {0,40,40,50};
+    public static final int[] spacesAvailablePerFloor = {30,40,40,50};
     
     
+
+
+
     public static LocalTime parseTime(String hhmm){
         try{
             
@@ -37,10 +40,17 @@ public class Parking {
     public static int minutesBetween(LocalTime entry,LocalTime exit){
         
         if(exit.isBefore(entry) || exit.equals(entry)){
-            return Duration.between(entry, exit.plusHours(24)).toMinutes();
+            return (int) Duration.between(entry, exit.plusHours(24)).toMinutes();
         } else {
-            return Duration.between(entry, exit);
+            return (int) Duration.between(entry, exit).toMinutes();
         }
         
     }
+
+    public static boolean inNightTime(LocalTime time) {
+        LocalTime startNight = LocalTime.of(21, 0); // 21:00
+        LocalTime endNight = LocalTime.of(6, 0);   // 06:00
+
+        return (time.equals(startNight) || time.isAfter(startNight)) || (time.equals(endNight) || time.isBefore(endNight));
+}
 }
